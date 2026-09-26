@@ -24,10 +24,8 @@ public class PlayerInfoMixin {
         PlayerSkin defaultSkin = callback.getReturnValue();
         if (defaultSkin == null) return;
 
-        // TODO: Configuration to allow prioritization of official or optifine cape
-        // if (defaultSkin.cape() != null) return;
-
-        var capeFuture = CapeManager.getInstance().getCapeTexture(this.profile.name());
+        boolean hasMojangCape = defaultSkin.cape() != null;
+        var capeFuture = CapeManager.getInstance().getCapeTexture(this.profile.name(), hasMojangCape);
         capeFuture.getNow(Optional.empty()).ifPresent(capeTexture -> {
             callback.setReturnValue(new PlayerSkin(
                     defaultSkin.body(),

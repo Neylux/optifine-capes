@@ -1,6 +1,6 @@
 package de.neylux.optifinecapes.utils;
 
-import de.neylux.optifinecapes.OptifineCapes;
+import de.neylux.optifinecapes.Config;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.ClientAsset;
 
@@ -18,7 +18,12 @@ public final class CapeManager {
     private final ConcurrentHashMap<String, CompletableFuture<Optional<ClientAsset.Texture>>> cache =
             new ConcurrentHashMap<>();
 
-    public CompletableFuture<Optional<ClientAsset.Texture>> getCapeTexture(String username) {
+    public CompletableFuture<Optional<ClientAsset.Texture>> getCapeTexture(String username, boolean hasMojangCape) {
+        // Return empty if user has mojang cape and prioritization is enabled
+        if (hasMojangCape && Config.PRIORITIZE_MOJANG_CAPES.get()) {
+            return CompletableFuture.completedFuture(Optional.empty());
+        }
+
         String key = username.toLowerCase();
 
         return cache.computeIfAbsent(key, k -> {

@@ -1,0 +1,7 @@
+{
+    "optifinecapes.configuration.prioritizeMojangCapes": "Prioritize Mojang Capes",
+    "optifinecapes.configuration.section.optifinecapes.common.toml.title": "Optifine Capes Configuration",
+    "optifinecapes.configuration.section.optifinecapes.common.toml": "Optifine Capes Configuration",
+    "optifinecapes.configuration.title": "Optifine Capes Configuration",
+    "optifinecapes.configuration.prioritizeMojangCapes.tooltip": "Whether to prioritize mojang or optifine capes"
+}
