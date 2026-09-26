@@ -24,8 +24,8 @@ public class PlayerInfoMixin {
         PlayerSkin defaultSkin = callback.getReturnValue();
         if (defaultSkin == null) return;
 
-        // Skip if the player already has an official cape equipped
-        if (defaultSkin.cape() != null) return;
+        // TODO: Configuration to allow prioritization of official or optifine cape
+        // if (defaultSkin.cape() != null) return;
 
         var capeFuture = CapeManager.getInstance().getCapeTexture(this.profile.name());
         capeFuture.getNow(Optional.empty()).ifPresent(capeTexture -> {

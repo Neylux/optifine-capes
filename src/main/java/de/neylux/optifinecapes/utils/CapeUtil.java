@@ -1,7 +1,6 @@
 package de.neylux.optifinecapes.utils;
 
 import com.mojang.blaze3d.platform.NativeImage;
-import com.mojang.logging.LogUtils;
 import de.neylux.optifinecapes.OptifineCapes;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
@@ -19,13 +18,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.lwjgl.system.MemoryUtil;
-import org.slf4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public final class CapeUtil {
-    private static final Logger LOGGER = LogUtils.getLogger();
-
-    private static final String OPTIFINE_URL = "http://s.optifine.net/capes/%s.png";
 
     private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool(
             runnable -> {
@@ -40,24 +35,30 @@ public final class CapeUtil {
             .connectTimeout(Duration.ofSeconds(3))
             .build();
 
-    private CapeUtil() {}
+    private CapeUtil() {
+    }
 
     public static CompletableFuture<Optional<ClientAsset.Texture>> fetchCapeTexture(String username) {
-        var request = HttpRequest.newBuilder()
-                .uri(URI.create(OPTIFINE_URL.formatted(username)))
-                .timeout(Duration.ofSeconds(4))
-                .GET()
-                .build();
+        return CompletableFuture
+                .supplyAsync(() -> URI.create("http://s.optifine.net/capes/" + username + ".png"))
+                .thenCompose(uri -> {
+                    var request = HttpRequest.newBuilder()
+                            .uri(uri)
+                            .timeout(Duration.ofSeconds(4))
+                            .GET()
+                            .build();
 
-        return HTTP_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray())
-                .thenApply(response -> {
-                    if (response.statusCode() != 200) {
-                        return Optional.<ClientAsset.Texture>empty();
-                    }
-                    return handleResponse(username, response.body());
+                    return HTTP_CLIENT
+                            .sendAsync(request, HttpResponse.BodyHandlers.ofByteArray())
+                            .thenApply(response -> {
+                                if (response.statusCode() != 200) {
+                                    return Optional.<ClientAsset.Texture>empty();
+                                }
+
+                                return handleResponse(username, response.body());
+                            });
                 })
                 .exceptionally(ex -> {
-                    LOGGER.error("Unexpected error occurred when fetching cape for: {}", username, ex);
                     return Optional.empty();
                 });
     }
@@ -76,7 +77,6 @@ public final class CapeUtil {
                             .getTextureManager()
                             .register(imgIdentifier, new DynamicTexture(imgIdentifier::toString, image));
                 } catch (Exception e) {
-                    LOGGER.error("Failed to register cape texture for: {}", username, e);
                     image.close();
                 }
             });
@@ -85,7 +85,6 @@ public final class CapeUtil {
             return Optional.of(clientTexture);
 
         } catch (Exception e) {
-            LOGGER.error("Failed to resize cape for: {}", username, e);
             return Optional.empty();
         }
     }
@@ -96,40 +95,29 @@ public final class CapeUtil {
      * Default OptiFine capes are 46×22. The canvas starts at 64×32 and doubles
      * until it is at least as large as the source image in both dimensions.
      */
-    private static NativeImage resizeCape(NativeImage image) {
-        int srcWidth = image.getWidth();
-        int srcHeight = image.getHeight();
+    private static @NotNull NativeImage resizeCape(@NotNull NativeImage image) {
+        int imageWidth = 64;
+        int imageHeight = 32;
+        int imageSrcWidth = image.getWidth();
+        int imageSrcHeight = image.getHeight();
 
-        if (srcWidth <= 0 || srcHeight <= 0) {
+        // Invalid image sizes
+        if (imageSrcWidth <= 0 || imageSrcHeight <= 0) {
             return image;
         }
 
-        int canvasWidth = 64;
-        int canvasHeight = 32;
-
-        while (canvasWidth < srcWidth || canvasHeight < srcHeight) {
-            canvasWidth *= 2;
-            canvasHeight *= 2;
+        while (imageWidth < imageSrcWidth || imageHeight < imageSrcHeight) {
+            imageWidth *= 2;
+            imageHeight *= 2;
         }
 
-        // No resize needed
-        if (canvasWidth == srcWidth && canvasHeight == srcHeight) {
-            return image;
+        NativeImage imgNew = new NativeImage(imageWidth, imageHeight, true);
+        for (int x = 0; x < imageSrcWidth; x++) {
+            for (int y = 0; y < imageSrcHeight; y++) {
+                imgNew.setPixel(x, y, image.getPixel(x, y));
+            }
         }
-
-        var resized = new NativeImage(canvasWidth, canvasHeight, true);
-
-        long bytesPerRow = (long) srcWidth * 4L; // RGBA = 4 bytes
-        long srcPtr = image.getPointer();
-        long dstPtr = resized.getPointer();
-
-        for (int y = 0; y < srcHeight; y++) {
-            long srcRow = srcPtr + y * bytesPerRow;
-            long dstRow = dstPtr + y * bytesPerRow;
-            MemoryUtil.memCopy(srcRow, dstRow, bytesPerRow);
-        }
-
         image.close();
-        return resized;
+        return imgNew;
     }
 }
