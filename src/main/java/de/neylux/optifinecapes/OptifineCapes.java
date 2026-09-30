@@ -14,6 +14,6 @@ public class OptifineCapes {
 
     public OptifineCapes(IEventBus modEventBus, ModContainer modContainer) {
         modContainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
-        modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        modContainer.registerConfig(ModConfig.Type.CLIENT, Config.SPEC);
     }
 }
